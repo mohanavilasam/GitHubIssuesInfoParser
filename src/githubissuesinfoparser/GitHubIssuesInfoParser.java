@@ -27,8 +27,8 @@ public class GitHubIssuesInfoParser {
 			+ "merge_commit_sha VARCHAR(255), " + "merge_title VARCHAR(510), " + "issue_label VARCHAR(32),"
 			+ "repository_url VARCHAR(510)," + "primary key (id)" + ");";
 	private static final Logger LOGGER = Logger.getLogger(GitHubIssuesInfoParser.class.getName());
-	private static final String CLIENT_ID = "3b6a2ef01a4ccf230ddd";
-	private static final String CLIENT_SECRET = "358324ef3b6f407054fdf6c736e322934b610964";
+	private static final String CLIENT_ID = "xxxxxxx";
+	private static final String CLIENT_SECRET = "xxxxxxx";
 	private static MySqlConn mysqlconn;
 
 	public static void main(String args[]) throws Exception {
@@ -89,59 +89,8 @@ public class GitHubIssuesInfoParser {
 							statement.setString(6, currentPageIssueObject.getString("repository_url"));
 						else
 							statement.setNull(6, Types.VARCHAR);
-						/*
-						Integer number = gitIssueQueryResponseObject.getInt("number");
-						if (number != null) {
-							statement.setInt(1, number);
-						} else {
-							statement.setNull(1, Types.INTEGER);
-						}
-						String title = gitIssueQueryResponseObject.getString("title");
-						if (title != null) {
-							statement.setString(2, title);
-						} else {
-							statement.setNull(2, Types.VARCHAR);
-						}
-						String mergeCommitSha = pullRequestInfoObject.getString("merge_commit_sha");
-						if (mergeCommitSha != null) {
-							statement.setString(3, mergeCommitSha);
-						} else {
-							statement.setNull(3, Types.VARCHAR);
-						}
-						String mergeTitle = pullRequestInfoObject.getString("title");
-						if (mergeTitle != null) {
-							statement.setString(4, mergeTitle);
-						} else {
-							statement.setNull(4, Types.VARCHAR);
-						}
-						String issueLabel = labelsInfoObject.getString("name");
-						if (issueLabel != null) {
-							statement.setString(5, issueLabel);
-						} else {
-							statement.setNull(5, Types.VARCHAR);
-						}
-						String repositoryUrl = gitIssueQueryResponseObject.getString("repository_url");
-						if (repositoryUrl != null) {
-							statement.setString(6, repositoryUrl);
-						} else {
-							statement.setNull(6, Types.VARCHAR);
-						}
-						*/
 						statement.execute();
 						statement.close();
-						// statement.setInt(1,
-						// gitIssueQueryResponseObject.getInt("number"));
-						// statement.setString(2,
-						// gitIssueQueryResponseObject.getString("title"));
-
-						// statement.setString(3,
-						// pullRequestInfoObject.getString("merge_commit_sha"));
-						// statement.setString(4,
-						// pullRequestInfoObject.getString("title"));
-						// statement.setString(5,
-						// labelsInfoObject.getString("name"));
-						// statement.setString(6,
-						// gitIssueQueryResponseObject.getString("repository_url"));
 					} catch (SQLException e) {
 						System.out.println("[ERROR]" + pullRequestInfoObject.toString());
 					}
