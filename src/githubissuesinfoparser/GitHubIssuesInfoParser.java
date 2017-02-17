@@ -12,7 +12,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.json.JSONArray;
 import org.json.JSONObject;
-
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -27,9 +26,9 @@ public class GitHubIssuesInfoParser {
 			+ "merge_commit_sha VARCHAR(255), " + "merge_title VARCHAR(510), " + "issue_label VARCHAR(32),"
 			+ "repository_url VARCHAR(510)," + "primary key (id)" + ");";
 	private static final Logger LOGGER = Logger.getLogger(GitHubIssuesInfoParser.class.getName());
-	private static final String CLIENT_ID = "xxxxxxx";
-	private static final String CLIENT_SECRET = "xxxxxxx";
-	private static MySqlConn mysqlconn;
+	private static final String CLIENT_ID = "xxxxx";
+	private static final String CLIENT_SECRET = "xxxxxx";
+
 
 	public static void main(String args[]) throws Exception {
 		iniDb();
@@ -43,16 +42,36 @@ public class GitHubIssuesInfoParser {
 		System.out.println("[INFO]: Number of pages = " + lastPageNo);
 		for (int i = 1; i <= lastPageNo; i++) {
 			String currUrlToRead = url + "&page=" + i;
+			//String currUrlToRead = "https://api.github.com/repos/wordpress-mobile/WordPress-Android/issues?state=closed&client_id=3b6a2ef01a4ccf230ddd&client_secret=eede5f163092e64f73d473b6a383558b71727563&page=150";
 			System.out.println("[INFO]: URl: " + currUrlToRead);
-			// Get a response using GitHub api and parse the JSON
-			parseJSONDataToDb(currUrlToRead);
+			JSONArray currentPageIssueList = new JSONArray(getResponse(currUrlToRead));
+			System.out.println("[INFO]: Number of issues on current page = " + currentPageIssueList.length());
+			int issueWithPullRequestCount = 0;
+			for (int j = 0; j < currentPageIssueList.length(); j++) {
+				JSONObject currentPageIssueObject = currentPageIssueList.getJSONObject(j);
+				if (currentPageIssueObject.has("pull_request")) {
+					String urlForPullRequestInfo = ((JSONObject) currentPageIssueObject.get("pull_request")).getString("url") + "?client_id=" + CLIENT_ID + "&client_secret=" + CLIENT_SECRET;
+					System.out.println("[DEBUG]: Pull request url " + urlForPullRequestInfo);
+					issueWithPullRequestCount++;
+					JSONArray currentPageIssueLabelObject = currentPageIssueObject.getJSONArray("labels");
+					//String urlForPullRequestInfo = ((JSONObject) currentPageIssueObject.get("pull_request")).getString("url") + "?client_id=" + CLIENT_ID + "&client_secret=" + CLIENT_SECRET;
+					//System.out.println("[INFO]: Pull request url " + urlForPullRequestInfo);
+					JSONObject pullRequestInfoObject = new JSONObject(getResponse(urlForPullRequestInfo));
+					for (int k = 0; k < currentPageIssueLabelObject.length(); k++) {
+						JSONObject labelsInfoObject = (JSONObject) currentPageIssueLabelObject.get(k);
+						performInsertOperation(currentPageIssueObject, pullRequestInfoObject, labelsInfoObject);
+					}
+
+				}
+
+			}
+			System.out.println("[INFO]: Total issues with pull request on current page = " + issueWithPullRequestCount);
 		}
 	}
-
+/*
 	private static void parseJSONDataToDb(String currUrlToRead) {
 		JSONArray currentPageIssueList = new JSONArray(getResponse(currUrlToRead));
-		MySqlConn mysqlconn = new MySqlConn();
-		Connection connection = mysqlconn.connect();
+
 		System.out.println("[INFO]: Number of issues on current page = " + currentPageIssueList.length());
 		int issueWithPullRequestCount = 0;
 		for (int j = 0; j < currentPageIssueList.length(); j++) {
@@ -63,43 +82,50 @@ public class GitHubIssuesInfoParser {
 				JSONObject pullRequestInfoObject = new JSONObject(getResponse(((JSONObject) currentPageIssueObject.get("pull_request")).getString("url") + "?client_id=" + CLIENT_ID + "&client_secret=" + CLIENT_SECRET));
 				for (int k = 0; k < currentPageIssueLabelObject.length(); k++) {
 					JSONObject labelsInfoObject = (JSONObject) currentPageIssueLabelObject.get(k);
-					try {
-						final PreparedStatement statement = connection.prepareStatement("INSERT INTO issue_info (issue_number, issue_title, merge_commit_sha, merge_title, issue_label, repository_url) VALUES (?, ?, ?, ?, ?, ?)");
-						if(currentPageIssueObject.has("number") && !currentPageIssueObject.isNull("number"))
-							statement.setInt(1, currentPageIssueObject.getInt("number"));
-						else
-							statement.setNull(1, Types.INTEGER);
-						if(currentPageIssueObject.has("title") && !currentPageIssueObject.isNull("title"))
-							statement.setString(2, currentPageIssueObject.getString("title"));
-						else
-							statement.setNull(2, Types.VARCHAR);			
-						if(pullRequestInfoObject.has("merge_commit_sha") && !pullRequestInfoObject.isNull("merge_commit_sha"))
-							statement.setString(3, pullRequestInfoObject.getString("merge_commit_sha"));
-						else
-							statement.setNull(3, Types.VARCHAR);
-						if(pullRequestInfoObject.has("title") && !pullRequestInfoObject.isNull("title"))
-							statement.setString(4, pullRequestInfoObject.getString("title"));
-						else
-							statement.setNull(4, Types.VARCHAR);
-						if(labelsInfoObject.has("name") && !labelsInfoObject.isNull("name"))
-							statement.setString(5, labelsInfoObject.getString("name"));
-						else
-							statement.setNull(5, Types.VARCHAR);
-						if(currentPageIssueObject.has("repository_url") && !currentPageIssueObject.isNull("repository_url"))
-							statement.setString(6, currentPageIssueObject.getString("repository_url"));
-						else
-							statement.setNull(6, Types.VARCHAR);
-						statement.execute();
-						statement.close();
-					} catch (SQLException e) {
-						System.out.println("[ERROR]" + pullRequestInfoObject.toString());
-					}
+					performInsertOperation(currentPageIssueObject, pullRequestInfoObject, labelsInfoObject);
 				}
 
 			}
 
 		}
 		System.out.println("[INFO]: Total issues with pull request on current page = " + issueWithPullRequestCount);
+		
+	}
+*/	
+	private static void performInsertOperation(JSONObject currentPageIssueObject, JSONObject pullRequestInfoObject, JSONObject labelsInfoObject){
+		MySqlConn mysqlconn = new MySqlConn();
+		Connection connection = mysqlconn.connect();
+		try {
+			final PreparedStatement statement = connection.prepareStatement("INSERT INTO issue_info (issue_number, issue_title, merge_commit_sha, merge_title, issue_label, repository_url) VALUES (?, ?, ?, ?, ?, ?)");
+			if(currentPageIssueObject.has("number") && !currentPageIssueObject.isNull("number"))
+				statement.setInt(1, currentPageIssueObject.getInt("number"));
+			else
+				statement.setNull(1, Types.INTEGER);
+			if(currentPageIssueObject.has("title") && !currentPageIssueObject.isNull("title"))
+				statement.setString(2, currentPageIssueObject.getString("title"));
+			else
+				statement.setNull(2, Types.VARCHAR);			
+			if(pullRequestInfoObject.has("merge_commit_sha") && !pullRequestInfoObject.isNull("merge_commit_sha"))
+				statement.setString(3, pullRequestInfoObject.getString("merge_commit_sha"));
+			else
+				statement.setNull(3, Types.VARCHAR);
+			if(pullRequestInfoObject.has("title") && !pullRequestInfoObject.isNull("title"))
+				statement.setString(4, pullRequestInfoObject.getString("title"));
+			else
+				statement.setNull(4, Types.VARCHAR);
+			if(labelsInfoObject.has("name") && !labelsInfoObject.isNull("name"))
+				statement.setString(5, labelsInfoObject.getString("name"));
+			else
+				statement.setNull(5, Types.VARCHAR);
+			if(currentPageIssueObject.has("repository_url") && !currentPageIssueObject.isNull("repository_url"))
+				statement.setString(6, currentPageIssueObject.getString("repository_url"));
+			else
+				statement.setNull(6, Types.VARCHAR);
+			statement.execute();
+			statement.close();
+		} catch (SQLException e) {
+			System.out.println("[ERROR]" + pullRequestInfoObject.toString());
+		}
 		mysqlconn.disconnect();
 	}
 
