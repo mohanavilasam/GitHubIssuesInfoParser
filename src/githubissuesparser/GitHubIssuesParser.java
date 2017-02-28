@@ -1,4 +1,4 @@
-package githubissuesinfoparser;
+package githubissuesparser;
 
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -23,6 +23,7 @@ import java.io.InputStreamReader;
  *
  */
 public class GitHubIssuesParser {
+	
 	private static final String CREATE_TABLE_QUERY = "CREATE TABLE IF NOT EXISTS issue_info( "
 			+ "id int NOT NULL AUTO_INCREMENT, " + "issue_number int(32), " + "issue_title VARCHAR(510), "
 			+ "merge_commit_sha VARCHAR(255), " + "merge_title VARCHAR(510), " + "issue_label VARCHAR(32),"
@@ -30,7 +31,6 @@ public class GitHubIssuesParser {
 	private static final Logger LOGGER = Logger.getLogger(GitHubIssuesParser.class.getName());
 	private static String clientId;
 	private static String clientSecret;
-
 
 	private GitHubIssuesParser() {
 		Properties prop = new Properties();
@@ -173,10 +173,4 @@ public class GitHubIssuesParser {
 		}
 		mysqlconn.disconnect();
 	}
-
-
-
-
-
-
 }
